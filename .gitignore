@@ -1,0 +1,22 @@
+# Arduino build folder
+/build/
+
+# Object files and compiled binaries
+*.elf
+*.hex
+*.bin
+*.eep
+*.map
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# Arduino IDE settings (optional, if you don't want to track them)
+*.log
+*.arduino.json
+
+# OS-specific files
+.DS_Store
+Thumbs.db
