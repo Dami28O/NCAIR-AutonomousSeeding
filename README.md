@@ -1,2 +1,3 @@
-# NCAIR_AutonomousSeeding
-Repository to hold documentation and code pertaining to a project I did as a Robotics Intern with the National Center For Robotics and Artificial Intelligence in Nigeria
+# NCAIR - AutonomousSeeding
+
+This repo details the code for my autonomous seeding robot "Àgbẹ̀". This project was done in conjunction with the National Center For Artificial Intelligence and Robotics in Abuja, Nigeria. 

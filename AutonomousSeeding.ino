@@ -1,4 +1,5 @@
 #include <Servo.h>
+#include <AccelStepper.h>
 #include <math.h>
 
 
@@ -30,28 +31,70 @@ const uint8_t REAR_in2 = 27;
 // ------------ REAR SERVO
 const uint8_t ServoSignal = 12;
 
+// ------------ STEPPER MOTORS
+#define HALFSTEP 8
+AccelStepper furrowStepper(HALFSTEP, 30, 32, 31, 33);
+AccelStepper seedingStepper(HALFSTEP, 34, 36, 35, 37);
+
 
 // ---------------------------------------------------
 //              VARIABLE DEFINITIONS                       
 // ---------------------------------------------------
+const float WHEELBASE = 39.6;   // Distance between front and rear axles in cm
+const float TRACK_WIDTH = 21.6; // Distance between front and rear axles in cm
 int distance;
 long duration;
-bool isMovingForward = false;         
 int currentSpeed = 0;
-const float WHEELBASE = 39.6; // Distance between front and rear axles in cm
-const float TRACK_WIDTH = 21.6; // Distance between front and rear axles in cm
-
-
+bool isMovingForward = false;         
+bool isDown = false;                            // Flag for furrow up or down
+float furrowDepth = 0.0;                        // Gives us the depth of the furrow
+const int MAX_DEPTH = 5;                        // Max depth of the furrow
+const int STEPS_PER_REV = 2048;                 // for 28BYJ-48 in half-step mode
+const int STEPS_30_DEG = STEPS_PER_REV / 12;    // ~170 steps for 30 degrees
+const int DEFAULT_FURROW_ROT = 5;               // Default number of rotations to lower furrow to 3cm below ground 
+bool planting = false;                          // Flag for planting mode or not 
+unsigned long lastSeedDrop = 0;                 // Timer between seed drops
+String lastMotionCommand = "";                  // Store the last valid motion command
+bool stoppedByObstacle = false;                 // Flag to track if the stop was due to an obstacle
+float lat = 6.5244;                             // last GPS lat and lon
+float lng = 7.4951;
+unsigned long lastUpdate = 0;
 // ---------------------------------------------------
 //                   INSTANCES                      
 // ---------------------------------------------------
 
-Servo rearServo;  // SERVO OBJECT
+Servo rearServo;                  // SERVO OBJECT
 
 
+// ---------------------------------------------------
+//              FUNCTION PROTOTYPES                      
+// ---------------------------------------------------
+void raiseFurrow(int numRot = DEFAULT_FURROW_ROT);
+void lowerFurrow(int numRot = DEFAULT_FURROW_ROT);
+void setupMotors();
+void setupDCMotors();
+void setupStepperServo();
+void setupSensors();
+void processCommand(String command);
+int radiusToServoAngle(float radius, char dir);
+void turn(char dir, int angle, float radius);
+void rotateWheel(int angle);
+void driveForward(float speed);
+void driveBackward(float speed);
+void stopMotors();
+long readUltrasonic();
+
+
+// ---------------------------------------------------
+//                   SETUP                      
+// ---------------------------------------------------
 void setup() {
   Serial.begin(9600);
 
+  // initialisethe wifi connection
+  initWiFi();
+
+  // Setup robot functions
   setupMotors();
   setupStepperServo();
 
@@ -61,6 +104,7 @@ void setup() {
 }
 
 // -------------- SETUP FUNCTIONS -------------- //
+
 
 void setupMotors() {
   setupDCMotors();
@@ -95,6 +139,16 @@ void setupStepperServo() {
   rearServo.attach(ServoSignal);        // Servo signal wire → pin 12
   rearServo.write(90);                  // Start centered
 
+  // STEPPERS
+  // Setup speed and acceleration for furrow and seeding stepper motors
+  furrowStepper.setMaxSpeed(1000.0);
+  furrowStepper.setAcceleration(50.0);
+
+  seedingStepper.setMaxSpeed(1000.0);
+  seedingStepper.setAcceleration(50.0);
+
+  // Upon initialisation load the seeds to be ready for dropping
+  loadSeeds();
 }
 
 void setupSensors() {
@@ -109,23 +163,49 @@ void processCommand(String command) {
   command.toUpperCase();          // Case insensitive
 
   if (command.startsWith("F")) {
+    lastMotionCommand = command;                                // Save the direction and speed
     int speed = command.substring(1).toFloat();
     driveForward(speed);
   } 
   else if (command.startsWith("B")) {
+    lastMotionCommand = command;                                // Save the direction and speed
     int speed = command.substring(1).toFloat();
     driveBackward(speed);
   }
   else if (command.startsWith("S")) {
+    lastMotionCommand = "";                                     // Clear motion profile
     stopMotors();
   }
   else if (command.startsWith("L") || command.startsWith("R")) {
-    char direction = command[0];                                  // Get direction from command
+    lastMotionCommand = command;                                    // Save information on turning in case of obstacle
+    char direction = command[0];                                    // Get direction from command
     float turningRadius = command.substring(1).toFloat();           // [cm]
-    int angle = radiusToServoAngle(turningRadius, direction);     // Convert turning radius to angle 
-    stopMotors();                                                 // Pause Motion
+    int angle = radiusToServoAngle(turningRadius, direction);       // Convert turning radius to angle 
+    stopMotors();                                                   // Pause Motion
     
     turn(direction, angle, turningRadius);                           // Apply Ackermann Steering
+  }
+  else if (command.startsWith("U")) {
+    // If the furrow is already down then bring back up
+    if (isDown) {
+      raiseFurrow();
+    }
+    else {
+      Serial.println("Furrow is already up");
+    }
+  }
+  else if (command.startsWith("D")) {
+    if (isDown) {
+      Serial.println("Furrow is already down");
+    }
+    else {
+      lowerFurrow();
+    }
+  }
+  else if (command == "GO") {
+    // GO for planting seeds
+    planting = true;
+    Serial.println("Seeding mode activated");
   }
   else {
     Serial.println("Invalid command.");
@@ -144,8 +224,7 @@ int radiusToServoAngle(float radius, char dir) {
     return 90;
   }
 
-      Serial.print("Direction "); Serial.println(dir);
-
+  Serial.print("Direction "); Serial.println(dir);
 
   // Calculate steering angle with Ackermann steering
   float steeringAngleRad = atan(WHEELBASE / radius);
@@ -247,15 +326,64 @@ void stopMotors(){
   analogWrite(enFR, 0);
   analogWrite(enFL, 0);
   analogWrite(enREAR, 0);
-  delay(2000);
 
   // Update State Variables
   isMovingForward = false;
   currentSpeed = 0;
+  
 
-  Serial.println("Stopping Motor");
+  Serial.print("Stopping DC Motor"); Serial.print(" | "); Serial.println("Planting Paused");
+}
 
-  // Add logic for the stepper motors
+void resumeMotion() {
+  // Check if there's a stored command to resume
+  if (lastMotionCommand.length() > 0) {
+    if (lastMotionCommand.startsWith("F")) {
+      int speed = lastMotionCommand.substring(1).toFloat();
+      driveForward(speed);
+    } else if (lastMotionCommand.startsWith("B")) {
+      int speed = lastMotionCommand.substring(1).toFloat();
+      driveBackward(speed);
+    } else if (lastMotionCommand.startsWith("L") || lastMotionCommand.startsWith("R")) {
+      char direction = lastMotionCommand[0];                                    // Get direction from command
+      float turningRadius = lastMotionCommand.substring(1).toFloat();           // [cm]
+      int angle = radiusToServoAngle(turningRadius, direction);       // Convert turning radius to angle 
+      stopMotors();                                                   // Pause Motion
+      
+      turn(direction, angle, turningRadius);                           // Apply Ackermann Steering
+    }
+  }
+}
+
+// ----------- FURROW ------------ //
+void raiseFurrow(int numRot = DEFAULT_FURROW_ROT) {
+  furrowStepper.moveTo(STEPS_PER_REV * numRot);              // Stepper moves anticlockwise
+  furrowStepper.run();
+  isDown = false;
+  Serial.println("Furrow position reset");
+}
+
+void lowerFurrow(int numRot = DEFAULT_FURROW_ROT) {
+  furrowStepper.moveTo(STEPS_PER_REV * -numRot);              // Stepper moves clockwise
+  furrowStepper.run();
+  isDown = true; 
+  Serial.println("Furrow is now lowered");
+}
+
+// ----------- SEEDING ------------ //
+
+void loadSeeds() {
+  // Function to spin the stepper motor for the seeds so that it is ready to drop seeds periodically
+  seedingStepper.moveTo(STEPS_30_DEG * 5);
+  seedingStepper.run();
+  lastSeedDrop = millis();
+  Serial.println("Seeds ready to drop");
+}
+
+void dropSeeds() {
+  // Rotate 30 degrees to drop one seed at a time
+  seedingStepper.moveTo(seedingStepper.currentPosition() + STEPS_30_DEG);
+  Serial.println("Seed dropped");
 }
 
 // ----------- SENSORS ------------ //
@@ -270,23 +398,54 @@ long readUltrasonic() {
   return duration * 0.034 / 2; // cm
 }
 
+// GPS 
+void simulateGPSMovement() {
+  if (millis() - lastUpdate > 5000) { // Update every 1 seconds
+    // Simulate small random movements
+    lat += (random(-10, 11) / 100000.0);
+    lng += (random(-10, 11) / 100000.0);
+    lastUpdate = millis();
+    
+    Serial.print("GPS Update: ");
+    Serial.print(lat, 6);
+    Serial.print(", ");
+    Serial.println(lng, 6);
+  }
+}
+
 
 
 void loop() {
   // CHECK OBSTACLES AHEAD
-  if (isMovingForward) {
-    distance = readUltrasonic();
-    if (distance < 20) {
-      stopMotors();
-      Serial.println("Obstacle detected! Motors stopped.");
+  distance = readUltrasonic();
+  simulateGPSMovement();
+
+  if (distance < 20 && isMovingForward) {
+    stoppedByObstacle = true;
+    stopMotors();
+    Serial.println("Obstacle detected! Motors stopped.");
+  }
+  else if (stoppedByObstacle && distance >= 20) {
+    // Resume prior action 
+    resumeMotion();
+    stoppedByObstacle = false;                    // Reset the flag after resuming
+  }
+
+  if (planting && isMovingForward) {
+    // if in planting mode and the time since last drop is more than 2s -> drop a seed
+    if (millis() - lastSeedDrop >= 2000) {
+      dropSeeds();
+      lastSeedDrop = millis();
     }
   }
 
+  handleWiFiCommands();
+  
   // Check for serial input
   if (Serial.available()) {
     String input = Serial.readStringUntil('\n');
     processCommand(input);
   }
 
-  delay(50);
+  delay(10);
 }

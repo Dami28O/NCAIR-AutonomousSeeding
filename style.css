@@ -1,0 +1,175 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 700px;
+    margin: 50px auto;
+    padding: 20px;
+    text-align: center;
+    background-color: #f0f0f0;
+}
+        
+h1 {
+    color: #333;
+    margin-bottom: 30px;
+}
+
+.controls-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    margin: 30px 0;
+}
+
+.button-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 20px;
+}
+
+button {
+    padding: 20px;
+    font-size: 15px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+button:active {
+    background-color: #3d8b40;
+    transform: scale(0.98);
+}
+
+.forward { grid-column: 2; grid-row: 1; }
+.left { grid-column: 1; grid-row: 2; }
+.stop { 
+    grid-column: 2; 
+    grid-row: 2; 
+    background-color: #f44336;
+}
+.stop:hover { background-color: #da190b; }
+.right { grid-column: 3; grid-row: 2; }
+.backward { grid-column: 2; grid-row: 3; }
+
+.furrow-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 30%; /* Increased width for the container */
+}
+button.furrow-up, button.furrow-down {
+    background-color: #162182;
+    width: 70%;   /* Increased button width */
+    height: 80px;
+    font-size: 18px;
+    white-space: normal; /* Allow text to wrap */
+    word-break: break-word;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.furrow-up:hover, .furrow-down:hover {
+    background-color: #0C114F;
+}
+
+.status {
+    margin-top: 30px;
+    padding: 15px;
+    background-color: white;
+    border-radius: 10px;
+    border-left: 4px solid #4CAF50;
+}
+
+.log {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #333;
+    color: #0f0;
+    border-radius: 10px;
+    text-align: left;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.connection-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #f44336;
+    margin-right: 10px;
+}
+
+.connection-indicator.connected {
+    background-color: #4CAF50;
+}
+
+.instructions {
+    background-color: #e3f2fd;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    color: #1565c0;
+}
+
+.furrow-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.furrow-up, .furrow-down {
+    width: 100px;
+    height: 80px;
+    font-size: 18px;
+}
+
+.variableinputs {
+    margin: 20px auto;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+}
+
+.variableinputs label {
+    font-weight: bold;
+    margin-bottom: 2px;
+    color: #162182;
+    text-align: center;
+    width: 100%;
+}
+
+.variableinputs input[type="range"],
+.variableinputs input[type="number"] {
+    width: 90%;
+    margin-bottom: 0;
+    padding: 6px;
+    font-size: 15px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    display: block;
+}
+
+#speedValue {
+    margin-left: 6px;
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+#map { height: 180px; }

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Control Test</title>
+    <link rel="stylesheet" href="style.css">
+     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+</head>
+<body>
+    <h1>Àgbẹ̀ Control Centre</h1>
+    
+    <div class="instructions">
+        <strong>Setup Instructions:</strong><br>
+        1. Connect to WiFi network: <strong>EGBA</strong><br>
+        2. Password: <strong>EGBA@Seeding</strong><br>
+        3. Robot should be at: <strong>http://192.168.4.1</strong>
+    </div>
+    
+    <div class="status">
+        <h3>
+            <span class="connection-indicator" id="connectionStatus"></span>
+            Connection Status
+        </h3>
+        <p id="statusMessage">Click a button to test connection...</p>
+        <p><strong>Robot IP:</strong> 
+            <input type="text" id="robotIP" value="192.168.4.1" 
+                   style="padding: 5px; border-radius: 5px; border: 1px solid #ddd;">
+        </p>
+    </div>
+    <div class="gps-status">
+        <h3>GPS Coordinates:</h3>
+        <div id="map"></div>
+        <p id="coords">Fetching...</p>
+    <div class="controls-container">
+        <div class="variableinputs">
+            <label for="speedSlider"><strong>Speed:</strong> <span id="speedValue">50%</span></label>
+            <input type="range" id="speedSlider" min="0" max="100" value="50" step="1">
+
+            <label for="radiusInput"><strong>Turning Radius (cm):</strong></label>
+            <input type="number" id="radiusInput" min="0" max="1000" value="37.5">
+
+            <label for="depthInput"><strong>Furrow Depth (cm):</strong></label>
+            <input type="number" id="depthInput" min="0" max="10" value="3.0">
+        </div>
+        <div class="button-grid">
+            <button class="forward" onclick="sendCommand('forward')">⬆️<br>FORWARD</button>
+            <button class="left" onclick="sendCommand('left')">⬅️<br>LEFT</button>
+            <button class="stop" onclick="sendCommand('stop')">⏹️<br>STOP</button>
+            <button class="right" onclick="sendCommand('right')">➡️<br>RIGHT</button>
+            <button class="backward" onclick="sendCommand('backward')">⬇️<br>BACK</button>
+        </div>
+        <div class="furrow-grid">
+            <button class="furrow-up" onclick="sendCommand('furrow_up')">🔼<br>FURROW UP</button>
+            <button class="furrow-down" onclick="sendCommand('furrow_down')">🔽<br>FURROW DOWN</button>
+        </div>
+        
+    </div>
+
+    
+    <div class="log" id="commandLog">
+        <strong>Command Log:</strong><br>
+        Ready to send commands...<br>
+    </div>
+
+   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+    <script>
+        let connectionStatus = false;
+        
+        function getRobotIP() {
+            return document.getElementById('robotIP').value;
+        }
+
+        // Initialize map centered on some default coords
+        const map = L.map('map').setView([6.5244, 7.4951], 13);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        let marker = L.marker([6.5244, 7.4951]).addTo(map);
+            
+        function fetchGPS() {
+            fetch("http://192.168.4.1/gps")   // ESP AP IP
+                .then(res => res.json())
+                .then(data => {
+                document.getElementById("coords").innerText =
+                    `Lat: ${data.lat}, Lng: ${data.lng}`;
+                
+                // Update marker position
+                marker.setLatLng([data.lat, data.lng]);
+
+                // Center map on new position
+                map.setView([data.lat, data.lng]);
+                })
+                .catch(err => console.error("Error:", err));
+        }
+
+        // Poll every 2 seconds
+        setInterval(fetchGPS, 5000);
+
+        // Fetch immediately on page load
+        fetchGPS();
+
+        function getSpeed() {
+            return parseInt(document.getElementById('speedSlider').value, 10);
+        }
+        function getRadius() {
+        return parseFloat(document.getElementById('radiusInput').value);
+        }
+        function getDepth() {
+            return parseFloat(document.getElementById('depthInput').value);
+        }
+
+        async function sendCommand(command) {
+            const ip = getRobotIP();
+            const speed = getSpeed();
+            const radius = getRadius();
+            const depth = getDepth();
+            const timestamp = new Date().toLocaleTimeString();
+
+            log(`[${timestamp}] Sending: ${command.toUpperCase()} @ ${speed}% | radius=${radius} | depth=${depth}`);
+
+            // Build query string
+            const params = `speed=${speed}&radius=${radius}&depth=${depth}`;
+            const url = `http://${ip}/${command}?${params}`;
+            log(`[${timestamp}] URL: ${url}`);
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+
+                if (response.ok) {
+                    let resultText = await response.text();
+                    log(`[${timestamp}] ✅ SUCCESS: ${resultText}`);
+                    updateConnectionStatus(true);
+                } else {
+                    log(`[${timestamp}] ❌ ERROR: HTTP ${response.status}`);
+                    updateConnectionStatus(false);
+                }
+
+            } catch (error) {
+                log(`[${timestamp}] ❌ FAILED: ${error.message}`);
+                updateConnectionStatus(false);
+            }
+        }
+        
+        function updateConnectionStatus(connected) {
+            connectionStatus = connected;
+            const indicator = document.getElementById('connectionStatus');
+            const message = document.getElementById('statusMessage');
+            
+            if (connected) {
+                indicator.classList.add('connected');
+                message.textContent = 'Connected to robot ✅';
+                message.style.color = '#4CAF50';
+            } else {
+                indicator.classList.remove('connected');
+                message.textContent = 'Connection failed ❌';
+                message.style.color = '#f44336';
+            }
+        }
+        
+        function log(message) {
+            const logElement = document.getElementById('commandLog');
+            logElement.innerHTML += message + '<br>';
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        // Test connection on page load
+        setTimeout(() => {
+            log('Testing connection...');
+        }, 1000);
+        
+        // Keyboard controls (optional)
+        document.addEventListener('keydown', function(event) {
+            switch(event.code) {
+                case 'ArrowUp':
+                    sendCommand('forward');
+                    break;
+                case 'ArrowDown':
+                    sendCommand('backward');
+                    break;
+                case 'ArrowLeft':
+                    sendCommand('left');
+                    break;
+                case 'ArrowRight':
+                    sendCommand('right');
+                    break;
+                case 'Space':
+                    sendCommand('stop');
+                    event.preventDefault();
+                    break;
+            }
+        });
+
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        speedSlider.addEventListener('input', function() {
+            speedValue.textContent = speedSlider.value + '%';
+        });
+    </script>
+</body>
+</html>
