@@ -1,8 +1,7 @@
 #include <Servo.h>
 #include <AccelStepper.h>
 #include <math.h>
-
-
+#include <TinyGPSPlus.h>
 
 // ---------------------------------------------------
 //              PIN DEFINITIONS                       
@@ -64,6 +63,7 @@ unsigned long lastUpdate = 0;
 // ---------------------------------------------------
 
 Servo rearServo;                  // SERVO OBJECT
+TinyGPSPlus gps;                  // GPS OBJECT
 
 
 // ---------------------------------------------------
@@ -90,8 +90,9 @@ long readUltrasonic();
 // ---------------------------------------------------
 void setup() {
   Serial.begin(9600);
+  Serial1.begin(9600);                // GPS Serial
 
-  // initialisethe wifi connection
+  // initialise the wifi connection
   initWiFi();
 
   // Setup robot functions
@@ -400,7 +401,7 @@ long readUltrasonic() {
 
 // GPS 
 void simulateGPSMovement() {
-  if (millis() - lastUpdate > 5000) { // Update every 1 seconds
+  if (millis() - lastUpdate > 5000) { // Update every 5 seconds
     // Simulate small random movements
     lat += (random(-10, 11) / 100000.0);
     lng += (random(-10, 11) / 100000.0);
@@ -418,7 +419,21 @@ void simulateGPSMovement() {
 void loop() {
   // CHECK OBSTACLES AHEAD
   distance = readUltrasonic();
-  simulateGPSMovement();
+
+  // if valid gps data, pass that to the web-app else simulate ut
+  if (Serial1.available()) {
+    if (gps.encode(Serial1.read()) && gps.location.isValid()) { // if we can read the serial data and it is valid
+      if (millis() - lastUpdate > 5000) {
+        lat = gps.location.lat();
+        lng = gps.location.lng();
+        lastUpdate = millis();
+      }
+    }
+  }
+  else {
+    simulateGPSMovement();
+  }
+  
 
   if (distance < 20 && isMovingForward) {
     stoppedByObstacle = true;
