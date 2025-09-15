@@ -225,6 +225,16 @@ String processWiFiCommand(String request) {
     String gpsData = String("{\"lat\":") + lat + ",\"lng\":" + lng + "}";
     return gpsData;
   }
+  else if (request.indexOf("GET /plant") >= 0) {
+    command = "PLANT";
+    processCommand(command);
+    response = "Commencing planting mode";
+  }
+  else if (request.indexOf("GET /pause") >= 0) {
+   command = "PAUSE";
+    processCommand(command);
+    response = "Planting mode paused";
+  }
   else {
     Serial.println("Unknown command in request");
     return "Unknown command";

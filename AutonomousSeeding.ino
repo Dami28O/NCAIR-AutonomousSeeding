@@ -41,8 +41,6 @@ AccelStepper seedingStepper(HALFSTEP, 34, 36, 35, 37);
 // ---------------------------------------------------
 const float WHEELBASE = 39.6;   // Distance between front and rear axles in cm
 const float TRACK_WIDTH = 21.6; // Distance between front and rear axles in cm
-int distance;
-long duration;
 int currentSpeed = 0;
 bool isMovingForward = false;         
 bool isDown = false;                            // Flag for furrow up or down
@@ -55,9 +53,13 @@ bool planting = false;                          // Flag for planting mode or not
 unsigned long lastSeedDrop = 0;                 // Timer between seed drops
 String lastMotionCommand = "";                  // Store the last valid motion command
 bool stoppedByObstacle = false;                 // Flag to track if the stop was due to an obstacle
-float lat = 6.5244;                             // last GPS lat and lon
-float lng = 7.4951;
-unsigned long lastUpdate = 0;
+float lat = 9.0563;                             // last GPS lat and lon
+float lng = 7.4985;
+unsigned long lastGPSUpdate = 0;                // Timer for GPS updates
+unsigned long servoMoveStartTime = 0;           // Timer to track servo movement  
+bool servoMoving = false;                       // Flag to indicate if servo is moving 
+
+
 // ---------------------------------------------------
 //                   INSTANCES                      
 // ---------------------------------------------------
@@ -83,6 +85,7 @@ void driveForward(float speed);
 void driveBackward(float speed);
 void stopMotors();
 long readUltrasonic();
+bool isServoReady();
 
 
 // ---------------------------------------------------
@@ -98,6 +101,7 @@ void setup() {
   // Setup robot functions
   setupMotors();
   setupStepperServo();
+  setupSensors();
 
   // ------ SERVO ------ //
   rearServo.attach(ServoSignal);        // Servo signal wire → pin 12
@@ -203,10 +207,15 @@ void processCommand(String command) {
       lowerFurrow();
     }
   }
-  else if (command == "GO") {
+  else if (command == "PLANT") {
     // GO for planting seeds
     planting = true;
     Serial.println("Seeding mode activated");
+  }
+  else if (command == "PAUSE") {
+    // GO for planting seeds
+    planting = false;
+    Serial.println("Seeding mode deactivated");
   }
   else {
     Serial.println("Invalid command.");
@@ -253,6 +262,11 @@ void turn(char dir, int angle, float radius) {
   int vFL = 0;                           // Initialise speed of front right wheel
   // Turn the back wheel 
   rotateWheel(angle);
+  
+  while (!isServoReady()) {
+    delay(10);  // Small delay to prevent busy waiting
+  }
+
 
   // Compute Ackerman steering velocities
   if (dir == 'R') {
@@ -268,6 +282,24 @@ void turn(char dir, int angle, float radius) {
   vFR = constrain(vFR, 0, 255);
   vFL = constrain(vFL, 0, 255);
 
+  // Apply calculated speed to drive motors
+  // Set speed
+  analogWrite(enFR, vFR);
+  analogWrite(enFL, vFL);
+  analogWrite(enREAR, vR);
+
+  // Drive all three motors
+  digitalWrite(in1, HIGH); digitalWrite(in2, LOW);
+  digitalWrite(in3, LOW); digitalWrite(in4, HIGH); 
+  digitalWrite(REAR_in1, HIGH); digitalWrite(REAR_in2, LOW);
+  
+  // Update state variables
+  isMovingForward = true;
+  currentSpeed = vR;
+
+  Serial.print("Turning at "); Serial.println(vR);
+
+
   Serial.print("Rear servo angle: "); Serial.print(angle); Serial.print(" | ");
   Serial.print("Right Wheel Speed: "); Serial.print(vFR); Serial.print(" | ");
   Serial.print("Left Wheel Speed: "); Serial.println(vFL);
@@ -275,8 +307,20 @@ void turn(char dir, int angle, float radius) {
 
 void rotateWheel (int angle) {
   rearServo.write(angle);
+  servoMoveStartTime = millis();
+  servoMoving = true;
   Serial.print("Moved to: ");
   Serial.println(angle);
+}
+
+bool isServoReady() {
+  if (!servoMoving) return true;
+  
+  if (millis() - servoMoveStartTime > 600) {  // Adjust timing
+    servoMoving = false;
+    return true;
+  }
+  return false;
 }
 
 void driveForward(float speed) {
@@ -395,17 +439,17 @@ long readUltrasonic() {
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
-  duration = pulseIn(echoPin, HIGH);
+  long duration = pulseIn(echoPin, HIGH);
   return duration * 0.034 / 2; // cm
 }
 
 // GPS 
 void simulateGPSMovement() {
-  if (millis() - lastUpdate > 5000) { // Update every 5 seconds
+  if (millis() - lastGPSUpdate > 5000) { // Update every 5 seconds
     // Simulate small random movements
     lat += (random(-10, 11) / 100000.0);
     lng += (random(-10, 11) / 100000.0);
-    lastUpdate = millis();
+    lastGPSUpdate = millis();
     
     Serial.print("GPS Update: ");
     Serial.print(lat, 6);
@@ -418,15 +462,17 @@ void simulateGPSMovement() {
 
 void loop() {
   // CHECK OBSTACLES AHEAD
-  distance = readUltrasonic();
+  float distance = readUltrasonic();
+  // Serial.print("Distance: ");
+  // Serial.println(distance);
 
   // if valid gps data, pass that to the web-app else simulate ut
   if (Serial1.available()) {
     if (gps.encode(Serial1.read()) && gps.location.isValid()) { // if we can read the serial data and it is valid
-      if (millis() - lastUpdate > 5000) {
+      if (millis() - lastGPSUpdate > 5000) {
         lat = gps.location.lat();
         lng = gps.location.lng();
-        lastUpdate = millis();
+        lastGPSUpdate = millis();
       }
     }
   }

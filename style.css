@@ -62,7 +62,7 @@ button:active {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    width: 30%; /* Increased width for the container */
+    width: 30%; 
 }
 button.furrow-up, button.furrow-down {
     background-color: #162182;
@@ -128,10 +128,20 @@ button.furrow-up, button.furrow-down {
     gap: 20px;
 }
 
-.furrow-up, .furrow-down {
-    width: 100px;
+.furrow-grid button {
+    width: 70%;
     height: 80px;
     font-size: 18px;
+    white-space: normal;
+    word-break: break-word;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+    border: none;
+    transition: background-color 0.3s;
+    color: white;
 }
 
 .variableinputs {
@@ -173,3 +183,26 @@ button.furrow-up, button.furrow-down {
 }
 
 #map { height: 180px; }
+
+button.plant-toggle {
+    background-color: #f44336; /* Red when paused */
+    color: white;
+    border-radius: 10px;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.3s;
+}
+
+button.plant-toggle.planting {
+    background-color: #145c1b; /* Dark green when planting */
+}
+
+button.plant-toggle:hover {
+    filter: brightness(0.9);
+}
+
+
+
