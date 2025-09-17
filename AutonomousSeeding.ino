@@ -14,26 +14,26 @@
 // ------------ DC MOTORS
 // FR Motor connections
 const uint8_t enFR = 9;
-const uint8_t in1 = 22;
-const uint8_t in2 = 23;
+const uint8_t in1 = 44;
+const uint8_t in2 = 45;
 
 // FL Motor connections
 const uint8_t enFL = 10;
-const uint8_t in3 = 24;
-const uint8_t in4 = 25;
+const uint8_t in3 = 46;
+const uint8_t in4 = 47;
 
 // REAR Motor Connections
 const uint8_t enREAR = 11;
-const uint8_t REAR_in1 = 26;
-const uint8_t REAR_in2 = 27;
+const uint8_t REAR_in1 = 24;
+const uint8_t REAR_in2 = 25;
 
 // ------------ REAR SERVO
 const uint8_t ServoSignal = 12;
 
 // ------------ STEPPER MOTORS
 #define HALFSTEP 8
-AccelStepper furrowStepper(HALFSTEP, 30, 32, 31, 33);
-AccelStepper seedingStepper(HALFSTEP, 34, 36, 35, 37);
+AccelStepper seedingStepper(HALFSTEP, 30, 32, 31, 34); 
+AccelStepper furrowStepper(HALFSTEP, 38, 40, 39, 41);
 
 
 // ---------------------------------------------------
@@ -291,7 +291,7 @@ void turn(char dir, int angle, float radius) {
   // Drive all three motors
   digitalWrite(in1, HIGH); digitalWrite(in2, LOW);
   digitalWrite(in3, LOW); digitalWrite(in4, HIGH); 
-  digitalWrite(REAR_in1, HIGH); digitalWrite(REAR_in2, LOW);
+  digitalWrite(REAR_in1, LOW); digitalWrite(REAR_in2, HIGH);
   
   // Update state variables
   isMovingForward = true;
@@ -335,7 +335,7 @@ void driveForward(float speed) {
   // Drive all three motors
   digitalWrite(in1, HIGH); digitalWrite(in2, LOW);
   digitalWrite(in3, LOW); digitalWrite(in4, HIGH); 
-  digitalWrite(REAR_in1, HIGH); digitalWrite(REAR_in2, LOW);
+  digitalWrite(REAR_in1, LOW); digitalWrite(REAR_in2, HIGH);
   
   // Update state variables
   isMovingForward = true;
@@ -356,7 +356,7 @@ void driveBackward(float speed) {
   // Drive all three motors
   digitalWrite(in1, LOW); digitalWrite(in2, HIGH);
   digitalWrite(in3, HIGH); digitalWrite(in4, LOW);
-  digitalWrite(REAR_in1, LOW); digitalWrite(REAR_in2, HIGH);
+  digitalWrite(REAR_in1, HIGH); digitalWrite(REAR_in2, LOW);
 
   // Update state variables
   isMovingForward = false;
