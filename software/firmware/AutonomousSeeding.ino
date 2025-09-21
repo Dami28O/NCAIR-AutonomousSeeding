@@ -170,11 +170,13 @@ void processCommand(String command) {
   if (command.startsWith("F")) {
     lastMotionCommand = command;                                // Save the direction and speed
     int speed = command.substring(1).toFloat();
+    rotateWheel(90);
     driveForward(speed);
   } 
   else if (command.startsWith("B")) {
     lastMotionCommand = command;                                // Save the direction and speed
     int speed = command.substring(1).toFloat();
+    rotateWheel(90);
     driveBackward(speed);
   }
   else if (command.startsWith("S")) {
