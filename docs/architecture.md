@@ -7,7 +7,7 @@ This document explains the overall architecture, including the **mechanical desi
 ---
 
 ## 2. System Overview
-![System Block Diagram](images/systemDiagram.jpg)
+![System Block Diagram](images/system_diagram/systemDiagram.jpg)
 
 The robot is divided into three main subsystems:
 - **Mechanical** – chassis, wheel system, seed dispensing and furrow opening.
