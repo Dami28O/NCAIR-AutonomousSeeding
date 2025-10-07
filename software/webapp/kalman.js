@@ -1,31 +1,3 @@
-// class KalmanFilter {
-//   constructor({ R, Q, A, B, H }) {
-//     this.R = R; // Measurement noise covariance
-//     this.Q = Q; // Process noise covariance
-//     this.A = A; // State transition
-//     this.B = B; // Control matrix
-//     this.H = H; // Observation model
-
-//     this.x = math.zeros(2, 1); // Initial state [position; velocity]
-//     this.P = math.identity(2); // Initial covariance
-//   }
-
-//   predict(u = 0) {
-//     this.x = math.add(math.multiply(this.A, this.x), math.multiply(this.B, u));
-//     this.P = math.add(math.multiply(math.multiply(this.A, this.P), math.transpose(this.A)), this.Q);
-//     return this.x;
-//   }
-
-//   correct(z) {
-//     const S = math.add(math.multiply(math.multiply(this.H, this.P), math.transpose(this.H)), this.R);
-//     const K = math.multiply(this.P, math.multiply(math.transpose(this.H), math.inv(S)));
-//     this.x = math.add(this.x, math.multiply(K, math.subtract(z, math.multiply(this.H, this.x))));
-//     this.P = math.multiply(math.subtract(math.identity(this.P.size()[0]), math.multiply(K, this.H)), this.P);
-//     return this.x;
-//   }
-// }
-
-
 class KalmanFilter {
     constructor({ R, Q, A, B, H, dt = 0.1 }) {
         this.R = R; // Measurement noise covariance
