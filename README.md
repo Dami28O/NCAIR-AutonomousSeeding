@@ -55,7 +55,6 @@ The Àgbẹ̀ robot employs a distributed control architecture with the followin
 **Mechanical Systems:**
 - Low ground pressure chassis design (see `docs/hardware/cad/` for Fusion 360 files)
 - Seeding mechanism with precise seed dispensing
-- Tricycle inspired design with heading 
 
 **Electronics:**
 - Microcontroller-based control system (Arduino-compatible)
@@ -133,8 +132,6 @@ This comprehensive document covers:
 **File**: `evaluation.md`
 - Performance evaluation and testing results
 - Design decisions and trade-offs
-- Cost-benefit analysis
-- Comparison with existing solutions
 
 ### Visual Documentation
 
