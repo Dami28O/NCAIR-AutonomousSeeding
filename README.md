@@ -7,7 +7,7 @@ This repository contains the documentation and codebase for **Àgbẹ̀**, an au
 ### Project Philosophy
 
 - **Low Ground Pressure Design**: Minimizes soil compaction to preserve agricultural land quality
-- **Swarm Approach**: Enables multiple units to work collaboratively for increased efficiency
+- **Swarm Approach**: Enables multiple units to work collaboratively for increased efficiency (Future Implementation)
 - **Low Cost Solution**: Designed to be accessible and scalable for Nigerian agricultural contexts
 
 ---
