@@ -216,7 +216,6 @@ Fusion 360 CAD files including:
 
 ```bash
 cd software/webapp
-pip install requirements.txt
 python3 -m http.server 8080
 ```
 
