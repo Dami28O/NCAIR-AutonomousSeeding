@@ -4,6 +4,8 @@
 
 This repository contains the documentation and codebase for **Àgbẹ̀**, an autonomous seeding robot developed during a Robotics Internship with the National Center for Artificial Intelligence and Robotics (NCAIR) in Abuja, Nigeria.
 
+![Àgbẹ̀](/docs/images/testing/IMG_1382.jpg)
+
 ### Project Philosophy
 
 - **Low Ground Pressure Design**: Minimizes soil compaction to preserve agricultural land quality
